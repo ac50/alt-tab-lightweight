@@ -17,7 +17,6 @@ class PreferencesMigrations {
     static func migratePreferences() {
         let preferencesKey = "preferencesVersion"
         let existingVersion = Self.defaults.string(forKey: preferencesKey)
-        ProTransitionState.markFreshInstallIfUnknown(existingVersion == nil)
         if let versionInPlist = existingVersion {
             if versionInPlist != "#VERSION#" && versionInPlist.compare(App.version, options: .numeric) != .orderedDescending {
                 updateToNewPreferences(versionInPlist)
@@ -29,6 +28,7 @@ class PreferencesMigrations {
     static func updateToNewPreferences(_ versionInPlist: String) {
         Logger.debug { "App-version:\(App.version), Plist-version:\(versionInPlist)" }
         for (version, migration) in [
+            ("11.3.0", migrateThumbnailsStyleRemoved),
             ("10.13.0", migrateGroupingToPerShortcut),
             ("10.12.0", migrateExceptionsTitleArray),
             ("10.12.0", migrateLanguagePreferenceIndex),
@@ -66,6 +66,30 @@ class PreferencesMigrations {
     static func shouldRun(_ versionInPlist: String, _ versionThreshold: String) -> Bool {
         // x.compare(y) is .orderedDescending if x > y
         versionInPlist.compare(versionThreshold, options: .numeric) != .orderedDescending
+    }
+
+    // thumbnails(0) was removed from AppearanceStylePreference; old indexes were
+    // thumbnails=0/appIcons=1/titles=2, new indexes are appIcons=0/titles=1.
+    // The remap is a value permutation (not idempotent), so a marker key makes it one-shot:
+    // re-running would flip-flop the user's appearance style on every launch.
+    static func migrateThumbnailsStyleRemoved() {
+        guard Self.defaults.object(forKey: "thumbnailsStyleRemovedMigrationDone") == nil else { return }
+        let remap = ["0": "1", "1": "0", "2": "1"]
+        var keys = ["appearanceStyle"]
+        for i in 0...Preferences.maxShortcutCount {
+            keys.append(Preferences.indexToName("appearanceStyleOverride", i))
+        }
+        for key in keys {
+            if let old = Self.defaults.string(forKey: key), let new = remap[old] {
+                Self.defaults.set(new, forKey: key)
+            }
+        }
+        var removedKeys = ["previewFocusedWindow", "captureWindowsInBackground", "screenRecordingPermissionSkipped", "hideThumbnails", "hideColoredCircles", "previewFadeInAnimation"]
+        for i in 0...Preferences.maxShortcutCount {
+            removedKeys.append(Preferences.indexToName("previewFocusedWindowOverride", i))
+        }
+        removedKeys.forEach { Self.defaults.removeObject(forKey: $0) }
+        Self.defaults.set(true, forKey: "thumbnailsStyleRemovedMigrationDone")
     }
 
     // showAppsOrWindows + showTabsAsWindows moved from global to per-shortcut. Copy the previous

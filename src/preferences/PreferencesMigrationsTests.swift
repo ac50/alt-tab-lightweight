@@ -12,7 +12,8 @@ import XCTest
 /// latter mutates real Login Items via deprecated LaunchServices APIs.
 ///
 /// Groups: A version gating · B grouping→per-shortcut · C language remap · D/E/F exceptions ·
-/// G/H show-windows dropdowns · I gestures · J cursor · K menubar · L/M sizes · N shortcuts · P dropdowns.
+/// G/H show-windows dropdowns · I gestures · J cursor · K menubar · L/M sizes · N shortcuts · P dropdowns ·
+/// Q thumbnails-style removed.
 final class PreferencesMigrationsTests: XCTestCase {
     var defaults: UserDefaults!
     var suiteName: String!
@@ -279,6 +280,45 @@ final class PreferencesMigrationsTests: XCTestCase {
         XCTAssertEqual(defaults.string(forKey: "theme"), "1")
     }
 
+    // MARK: - Q. Thumbnails style removed (appearanceStyle reindex + dead keys cleanup)
+
+    func testThumbnailsStyleRemapsThumbnailsAndTitlesToTitles() {
+        defaults.set("0", forKey: "appearanceStyle") // old thumbnails -> new titles
+        defaults.set("2", forKey: "appearanceStyleOverride3") // old titles -> new titles
+        PreferencesMigrations.migrateThumbnailsStyleRemoved()
+        XCTAssertEqual(defaults.string(forKey: "appearanceStyle"), "1")
+        XCTAssertEqual(defaults.string(forKey: "appearanceStyleOverride3"), "1")
+    }
+
+    func testThumbnailsStyleRemapsAppIconsToIndexZero() {
+        defaults.set("1", forKey: "appearanceStyle") // old appIcons -> new appIcons
+        PreferencesMigrations.migrateThumbnailsStyleRemoved()
+        XCTAssertEqual(defaults.string(forKey: "appearanceStyle"), "0")
+    }
+
+    func testThumbnailsStyleRemovesDeadScreenRecordingKeys() {
+        defaults.set("true", forKey: "previewFocusedWindow")
+        defaults.set("true", forKey: "captureWindowsInBackground")
+        defaults.set("true", forKey: "screenRecordingPermissionSkipped")
+        defaults.set("true", forKey: "hideThumbnails")
+        defaults.set("true", forKey: "hideColoredCircles")
+        defaults.set("true", forKey: "previewFadeInAnimation")
+        defaults.set("true", forKey: "previewFocusedWindowOverride2")
+        PreferencesMigrations.migrateThumbnailsStyleRemoved()
+        ["previewFocusedWindow", "captureWindowsInBackground", "screenRecordingPermissionSkipped",
+         "hideThumbnails", "hideColoredCircles", "previewFadeInAnimation", "previewFocusedWindowOverride2"].forEach {
+            XCTAssertNil(defaults.string(forKey: $0), "\($0) should be removed")
+        }
+    }
+
+    func testThumbnailsStyleMigrationIsOneShot() {
+        defaults.set("0", forKey: "appearanceStyle") // old thumbnails -> new titles
+        PreferencesMigrations.migrateThumbnailsStyleRemoved()
+        XCTAssertEqual(defaults.string(forKey: "appearanceStyle"), "1")
+        PreferencesMigrations.migrateThumbnailsStyleRemoved() // re-run: marker key prevents the permutation from flip-flopping
+        XCTAssertEqual(defaults.string(forKey: "appearanceStyle"), "1")
+    }
+
     // MARK: - Helpers
 
     private func decodeExceptions() throws -> [ExceptionEntry] {
@@ -351,10 +391,6 @@ enum ShowHowPreference {
 
 extension App {
     static let version = "99.99.99"
-}
-
-enum ProTransitionState {
-    static func markFreshInstallIfUnknown(_ value: Bool) {}
 }
 
 enum AxError: Error {

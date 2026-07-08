@@ -1,12 +1,8 @@
 import Cocoa
-import Sparkle
 
 class GeneralTab {
     static var menubarIconDropdown: NSPopUpButton?
     static var menuIconShownToggle: Switch?
-    static var updatesPolicyDropdown: NSPopUpButton?
-    static var crashPolicyDropdown: NSPopUpButton?
-    static var policyLock = false
 
     static func initTab() -> NSView {
         let startAtLogin = TableGroupView.Row(leftTitle: NSLocalizedString("Start at login", comment: ""),
@@ -20,12 +16,6 @@ class GeneralTab {
             ])
         let language = TableGroupView.Row(leftTitle: NSLocalizedString("Language", comment: ""),
             rightViews: [LabelAndControl.makeDropdown("language", LanguagePreference.allCases, extraAction: setLanguageCallback)])
-        updatesPolicyDropdown = LabelAndControl.makeDropdown("updatePolicy", UpdatePolicyPreference.allCases)
-        let checkForUpdates = NSButton(title: NSLocalizedString("Check for updates now…", comment: ""), target: nil, action: nil)
-        checkForUpdates.onAction = { control in checkForUpdatesNow(control) }
-        crashPolicyDropdown = LabelAndControl.makeDropdown("crashPolicy", CrashPolicyPreference.allCases)
-        let crashPolicy = TableGroupView.Row(leftTitle: NSLocalizedString("Crash reports policy", comment: ""),
-            rightViews: [crashPolicyDropdown!])
         for i in 0..<MenubarIconPreference.allCases.count {
             let image = NSImage.initCopy("menubar-\(i)")
             image.isTemplate = i < 2
@@ -36,22 +26,11 @@ class GeneralTab {
         cell.bezelStyle = .regularSquare
         cell.arrowPosition = .arrowAtBottom
         cell.imagePosition = .imageOverlaps
-        let captureWindowsInBackground = TableGroupView.Row(leftTitle: NSLocalizedString("Capture windows in the background", comment: ""),
-            subTitle: NSLocalizedString("When disabled, avoids the macOS purple screen-recording indicator, and avoids flickers when playing DRM video. Thumbnails will be less up-to-date.", comment: ""),
-            rightViews: [LabelAndControl.makeSwitch("captureWindowsInBackground")])
         let table = TableGroupView(width: SettingsWindow.contentWidth)
         table.addRow(startAtLogin)
         table.addRow(menubarIcon)
-        table.addRow(captureWindowsInBackground)
         table.addNewTable()
         table.addRow(language)
-        table.addNewTable()
-        table.addRow(leftViews: [TableGroupView.makeText(NSLocalizedString("Updates policy", comment: ""))],
-            rightViews: [updatesPolicyDropdown!],
-            secondaryViews: [checkForUpdates],
-            secondaryViewsAlignment: .right,
-            secondaryViewsTopGap: 8)
-        table.addRow(crashPolicy)
         let exportButton = NSButton(title: NSLocalizedString("Export settings…", comment: ""), target: nil, action: nil)
         exportButton.onAction = { _ in exportSettings() }
         let importButton = NSButton(title: NSLocalizedString("Import settings…", comment: ""), target: nil, action: nil)
@@ -68,15 +47,11 @@ class GeneralTab {
     static func cleanup() {
         menubarIconDropdown = nil
         menuIconShownToggle = nil
-        updatesPolicyDropdown = nil
-        crashPolicyDropdown = nil
     }
 
     static func refreshControlsFromPreferences() {
         menubarIconDropdown?.selectItem(at: CachedUserDefaults.intFromMacroPref("menubarIcon", MenubarIconPreference.allCases))
         menubarIconDropdown?.isEnabled = Preferences.menubarIconShown
-        updatesPolicyDropdown?.selectItem(at: CachedUserDefaults.intFromMacroPref("updatePolicy", UpdatePolicyPreference.allCases))
-        crashPolicyDropdown?.selectItem(at: CachedUserDefaults.intFromMacroPref("crashPolicy", CrashPolicyPreference.allCases))
     }
 
     @objc static func resetPreferences() {
@@ -92,13 +67,6 @@ class GeneralTab {
             Preferences.resetAll()
             App.restart()
         }
-    }
-
-    @objc static func checkForUpdatesNow(_ sender: Any?) {
-        // The updater is lazy-started 30s after launch; if the user presses this button before
-        // then, defensively start it first (idempotent — second call is a no-op).
-        App.updaterController?.startUpdater()
-        App.updaterController?.checkForUpdates(sender)
     }
 
     private static func exportSettings() {

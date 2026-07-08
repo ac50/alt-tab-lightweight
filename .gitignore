@@ -20,3 +20,6 @@ codesign.p12
 /config/local.xcconfig
 /scripts/l10n/missing-translations.json
 /ai/output/
+/docs/*
+!/docs/acknowledgments.md
+!/docs/contributors.md

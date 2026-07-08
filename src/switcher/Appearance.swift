@@ -3,7 +3,6 @@ import Cocoa
 class Appearance {
     // size
     static var resolvedSize = AppearanceSizePreference.medium
-    static var hideThumbnails = Bool(false)
     static var windowPadding = CGFloat(1000)
     static var windowCornerRadius = CGFloat(1000)
     static var cellCornerRadius = CGFloat(1000)
@@ -24,7 +23,7 @@ class Appearance {
 
     // theme
     static var fontColor = NSColor.red
-    static var imagesShadowColor = NSColor.red // for icon, thumbnail and windowless images
+    static var imagesShadowColor = NSColor.red // for icon and windowless images
     static var material = NSVisualEffectView.Material.ultraDark
     static var highlightBorderWidth = CGFloat(3)
 
@@ -50,28 +49,24 @@ class Appearance {
     }
 
     private static func updateSize() {
-        let isHorizontalScreen = NSScreen.preferred.isHorizontal()
         maxWidthOnScreen = AppearanceTestable.comfortableWidth(NSScreen.preferred.physicalSize().map { $0.width })
         let sizeToApply: AppearanceSizePreference = currentSize == .auto ? .large : currentSize
         resolvedSize = sizeToApply
-        applyConcreteSize(sizeToApply, isHorizontalScreen)
+        applyConcreteSize(sizeToApply)
         updateFont()
     }
 
     static func applySize(_ size: AppearanceSizePreference) {
-        let isHorizontalScreen = NSScreen.preferred.isHorizontal()
         resolvedSize = size
-        applyConcreteSize(size, isHorizontalScreen)
+        applyConcreteSize(size)
         updateFont()
     }
 
-    private static func applyConcreteSize(_ size: AppearanceSizePreference, _ isHorizontalScreen: Bool) {
+    private static func applyConcreteSize(_ size: AppearanceSizePreference) {
         if currentStyle == .appIcons {
             appIconsSize(size)
-        } else if currentStyle == .titles {
-            titlesSize(isHorizontalScreen, size)
         } else {
-            thumbnailsSize(isHorizontalScreen, size)
+            titlesSize(size)
         }
     }
 
@@ -90,37 +85,7 @@ class Appearance {
         }
     }
 
-    private static func thumbnailsSize(_ isHorizontalScreen: Bool, _ size: AppearanceSizePreference) {
-        hideThumbnails = false
-        windowPadding = 18
-        windowCornerRadius = 23
-        cellCornerRadius = 10
-        edgeInsetsSize = 12
-        if #available(macOS 26.0, *) {
-            windowPadding = 28
-            windowCornerRadius = 43
-            cellCornerRadius = 18
-        }
-        switch size {
-            case .small:
-                rowsCount = isHorizontalScreen ? 5 : 8
-                iconSize = 16
-                fontHeight = 13
-            case .medium:
-                rowsCount = isHorizontalScreen ? 4 : 7
-                iconSize = 26
-                fontHeight = 14
-            case .large, .auto:
-                rowsCount = isHorizontalScreen ? 3 : 6
-                iconSize = 28
-                fontHeight = 16
-        }
-        let tilesPanelRatio = (NSScreen.preferred.frame.width * maxWidthOnScreen) / (NSScreen.preferred.frame.height * maxHeightOnScreen)
-        (windowMinWidthInRow, windowMaxWidthInRow) = AppearanceTestable.goodValuesForThumbnailsWidthMinMax(tilesPanelRatio, rowsCount)
-    }
-
     private static func appIconsSize(_ size: AppearanceSizePreference) {
-        hideThumbnails = true
         windowPadding = 25
         windowCornerRadius = 23
         cellCornerRadius = 10
@@ -157,8 +122,7 @@ class Appearance {
         }
     }
 
-    private static func titlesSize(_ isHorizontalScreen: Bool, _ size: AppearanceSizePreference) {
-        hideThumbnails = true
+    private static func titlesSize(_ size: AppearanceSizePreference) {
         windowPadding = 18
         windowCornerRadius = 23
         cellCornerRadius = 10

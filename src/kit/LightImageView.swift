@@ -35,14 +35,4 @@ class LightImageView: NSView {
 
 enum CALayerContents {
     case cgImage(CGImage?)
-    case pixelBuffer(CVPixelBuffer?)
-
-    func size() -> NSSize? {
-        switch self {
-        case .cgImage(let image):
-            return image?.size()
-        case .pixelBuffer(let pixelBuffer):
-            return pixelBuffer?.size()
-        }
-    }
 }

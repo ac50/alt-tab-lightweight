@@ -11,25 +11,21 @@ class BackgroundWork {
 
     // we use an OperationQueue for most tasks, especially when we need to call blocking APIs in parallel
     static var repeatingKeyQueue: LabeledOperationQueue!
-    static var screenshotsQueue: LabeledOperationQueue!
+    static var appIconsQueue: LabeledOperationQueue!
     static var accessibilityCommandsQueue: LabeledOperationQueue!
     static var focusOrderQueue: LabeledOperationQueue!
-    static var crashReportsQueue: LabeledOperationQueue!
     static var permissionsCheckOnTimerQueue: LabeledOperationQueue!
-    static var permissionsSystemCallsQueue: LabeledOperationQueue!
 
     private static var totalPotentialThreadCount = 0
 
     static func preStart() {
         // we make calls to the system permissions API to know if permissions are granted. We do this on a timer
         permissionsCheckOnTimerQueue = LabeledOperationQueue("permissionsCheckOnTimer", .userInteractive, 1)
-        // if macOS is overwhelmed, let's reduce the pressure on it by calling permission APIs one at a time
-        permissionsSystemCallsQueue = LabeledOperationQueue("permissionsSystemCalls", .userInteractive, 1)
-        // we update cachedSCWindows during the first permission check; so we need this queue early
-        screenshotsQueue = LabeledOperationQueue("screenshots", .userInteractive, 8)
     }
 
     static func start() {
+        // app icons are rasterized off the main thread
+        appIconsQueue = LabeledOperationQueue("appIcons", .userInteractive, 8)
         // calls to focus/close/minimize/etc windows
         // They are tried once and if they timeout we don't retry. The OS seems to still execute them even if the call timed out
         accessibilityCommandsQueue = LabeledOperationQueue("axCommands", .userInteractive, 4)
@@ -49,13 +45,6 @@ class BackgroundWork {
         cliEventsThread = BackgroundThreadWithRunLoop("cliMessages", .userInteractive)
     }
 
-    static func startCrashReportsQueue() {
-        if crashReportsQueue == nil {
-            // crash reports can be sent off the main thread
-            crashReportsQueue = LabeledOperationQueue("crashReports", .utility, 1)
-        }
-    }
-
     static func addPotentialThreadCount(_ additionalCount: Int) {
         totalPotentialThreadCount += additionalCount
         // a macos process has a soft limit of 64 threads. We need to be careful to don't spawn too many threads through DispatchQueues
@@ -65,7 +54,7 @@ class BackgroundWork {
     #if DEBUG
     // dev-only helpers to inspect thread count / queue depth; call from lldb when diagnosing
     private static func logQueues() -> Void {
-        let queues = [screenshotsQueue, accessibilityCommandsQueue, AXCallScheduler.shared.axQueryFirstTryQueue, AXCallScheduler.shared.axQueryScanQueue, AXCallScheduler.shared.axQueryRetryQueue, crashReportsQueue].compactMap { $0 }
+        let queues = [appIconsQueue, accessibilityCommandsQueue, AXCallScheduler.shared.axQueryFirstTryQueue, AXCallScheduler.shared.axQueryScanQueue, AXCallScheduler.shared.axQueryRetryQueue].compactMap { $0 }
         var map = [String:Int]()
         for queue in queues {
             map[queue.underlyingQueue!.label] = queue.operations.reduce(0) { $1.isExecuting ? $0 + 1 : $0 }

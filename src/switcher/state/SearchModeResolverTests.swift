@@ -4,8 +4,8 @@ import XCTest
 /// `SearchModeResolver` kernel. Pure data in, `Equatable` decision out — no AppKit, no globals.
 /// `TilesView` / `ShortcutAction` execute these decisions; this suite is the spec for what they do.
 ///
-/// Groups: A entry · B toggle route · C enter-editing (+Pro gate) · D disable · E lock/unlock
-/// (+Pro gate) · F escape-depends-on-entry · G nav/tab · H shortcut pass-through · I text
+/// Groups: A entry · B toggle route · C enter-editing (+gate) · D disable · E lock/unlock
+/// (+gate) · F escape-depends-on-entry · G nav/tab · H shortcut pass-through · I text
 /// pass-through (cmd+A/C/V/X) · J IME/menu early return · K field editability.
 final class SearchModeResolverTests: XCTestCase {
 
@@ -33,7 +33,7 @@ final class SearchModeResolverTests: XCTestCase {
         XCTAssertEqual(SearchModeResolver.toggle(mode: .locked), .enterEditing)
     }
 
-    // MARK: - C. Enter editing (Pro-gated)
+    // MARK: - C. Enter editing (gate-checked)
 
     func testEnterFromOffEntersEditingAndRefreshes() {
         XCTAssertEqual(SearchModeResolver.enableEditing(mode: .off, canSearch: true), .enterEditing(refreshUi: true))
@@ -70,7 +70,7 @@ final class SearchModeResolverTests: XCTestCase {
         XCTAssertEqual(SearchModeResolver.disable(mode: .off), .noOp)
     }
 
-    // MARK: - E. Lock / unlock (Pro-gated)
+    // MARK: - E. Lock / unlock (gate-checked)
 
     func testLockFromEditingLocksResults() {
         XCTAssertEqual(SearchModeResolver.lock(mode: .editing, canLockSearch: true), .lockResults)

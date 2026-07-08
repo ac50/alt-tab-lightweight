@@ -14,7 +14,7 @@ the Edit menu, call `App.cycleSelection`).
 
 - **`.off`** — no search field interaction; the switcher behaves normally.
 - **`.editing`** — the search field is the first responder and editable; typing filters the list.
-- **`.locked`** — *(Pro)* the query is frozen and the field is read-only; focus moves to the selected
+- **`.locked`** — the query is frozen and the field is read-only; focus moves to the selected
   tile so arrow keys navigate results while the filter stays put.
 
 ### How you enter search (this decides Escape's behavior)
@@ -28,11 +28,10 @@ the Edit menu, call `App.cycleSelection`).
 - **Escape is contextual** (the headline interaction): if search was *toggled mid-session*, Escape
   exits search back to the normal switcher (a second Escape then closes it). If the session *started
   in search*, Escape closes the whole switcher immediately — there's no "normal switcher" to fall back to.
-- **Pro gating timing**: `ProFeature.searchInSwitcher.attemptUse()` / `lockSearchInSwitcher.attemptUse()`
-  have side effects (consume the free pass, surface the upgrade UI), so the *caller* evaluates them at
-  the real attempt moment and passes a `Bool` in. The gate is checked **before** the state branches,
-  so a denied attempt never mutates mode (it returns `.proGateBlocked`). `toggle` is gate-free — it just
-  routes to the enter/disable path, which applies its own gate (mirrors the original delegation).
+- **Gating timing**: the kernel takes `canSearch` / `canLockSearch` as plain `Bool` inputs (production
+  callers always pass `true`). The gate is checked **before** the state branches, so a denied attempt
+  never mutates mode (it returns `.proGateBlocked`). `toggle` is gate-free — it just routes to the
+  enter/disable path, which applies its own gate (mirrors the original delegation).
 - **Refresh only from `.off`**: entering editing refreshes the UI only when coming from `.off`
   (`enterEditing(refreshUi:)` carries the original `wasOff` flag); re-entering from `.locked` does not.
 - **Key routing precedence** (while editing): IME-composing or an open context menu wins first (never
@@ -59,7 +58,7 @@ Mirrors `SearchModeResolverTests.swift` 1:1.
 - **testToggleFromEditingDisables** — `.editing` → `.disable`.
 - **testToggleFromLockedReEntersEditing** — `.locked` → `.enterEditing`.
 
-### C. Enter editing (Pro-gated)
+### C. Enter editing (gate-checked)
 - **testEnterFromOffEntersEditingAndRefreshes** — `.off` + entitled → `enterEditing(refreshUi: true)`.
 - **testEnterFromLockedEntersEditingWithoutRefresh** — `.locked` + entitled → `enterEditing(refreshUi: false)`.
 - **testEnterWhenAlreadyEditingJustPlacesCaret** — `.editing` + entitled → `placeCaretOnly`.
@@ -71,7 +70,7 @@ Mirrors `SearchModeResolverTests.swift` 1:1.
 - **testDisableFromLockedExitsToOff** — `.locked` → `.exitToOff`.
 - **testDisableWhenAlreadyOffIsNoOp** — `.off` → `.noOp`.
 
-### E. Lock / unlock (Pro-gated)
+### E. Lock / unlock (gate-checked)
 - **testLockFromEditingLocksResults** — `.editing` + entitled → `.lockResults`.
 - **testLockFromLockedUnlocksToEditing** — `.locked` + entitled → `.unlockToEditing`.
 - **testLockFromOffIsNoOp** — `.off` + entitled → `.noOp`.

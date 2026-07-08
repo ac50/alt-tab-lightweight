@@ -1,0 +1,44 @@
+# 轻量版个人构建工作流：在 GitHub 免费 macOS 云端机上编译 AltTab，产出可下载的 .app 压缩包。
+# 与官方发布流水线 (ci_cd.yml) 无关：不需要任何 Apple 证书或仓库密钥。
+# 触发方式：推送到 lightweight 分支自动构建，或在 Actions 页面手动 Run workflow。
+name: Build lightweight AltTab
+
+on:
+  push:
+    branches:
+      - lightweight
+  workflow_dispatch:
+
+env:
+  APP_PATH: DerivedData/Build/Products/Release/AltTab.app
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v6
+      - name: Select newest Xcode on the runner
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)/Contents/Developer" && xcodebuild -version
+      - name: Set version number (must be > 11.3.0 for preference migrations)
+        run: printf 'CURRENT_PROJECT_VERSION = 11.3.1\n' > config/local.xcconfig
+      - name: Build Release
+        run: set -o pipefail && xcodebuild -project alt-tab-macos.xcodeproj -scheme Release -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO | scripts/xcbeautify
+      - name: Ad-hoc codesign
+        run: codesign --force --deep --sign - "$APP_PATH" && codesign --verify --deep "$APP_PATH"
+      - name: Zip with ditto (preserves signature, symlinks and permissions)
+        run: ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" AltTab-lightweight.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AltTab-lightweight
+          path: AltTab-lightweight.zip
+          retention-days: 30
+
+  # 测试与构建分离：测试失败不影响你拿到安装包，但请把失败日志反馈回来修复。
+  test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v6
+      - name: Select newest Xcode on the runner
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)/Contents/Developer" && xcodebuild -version
+      - name: Run unit tests
+        run: scripts/run_tests.sh

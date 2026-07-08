@@ -12,7 +12,7 @@
 
 - **Version gating (`shouldRun`)** uses `String.compare(_, options: .numeric)`. A migration with threshold `T` runs iff the stored version is **≤ T** (i.e. compare is *not* `.orderedDescending`). The `.numeric` option is load-bearing: lexically `"9" > "10"`, but numerically `9 < 10`, so a user on `9.x` still gets a `10.x` migration.
 - **Order matters**: `updateToNewPreferences` runs migrations newest-threshold-first; some depend on keys earlier ones leave behind. The per-migration tests isolate each, but the registration list in `updateToNewPreferences` is the integration contract.
-- **Idempotency**: `migrateExceptionsTitleArray` must be safe to re-run — already-migrated (array-form) data fails to decode into the legacy (`String?`) shape, triggering an early return that leaves data untouched.
+- **Idempotency**: `migrateExceptionsTitleArray` must be safe to re-run — already-migrated (array-form) data fails to decode into the legacy (`String?`) shape, triggering an early return that leaves data untouched. `migrateThumbnailsStyleRemoved` is a value permutation that *cannot* be naturally idempotent, so it guards itself with a one-shot `thumbnailsStyleRemovedMigrationDone` marker key.
 - **A quirk worth knowing** (pinned by a test): the global→per-shortcut grouping migration copies the global value into the indexed keys, but because index 0's key *is* the old global key, that key is removed at the end — so slot 0 ends up unset while slots 2…10 hold the value.
 - **Testability**: production reads/writes `UserDefaults.standard`; the tests inject an isolated suite via `PreferencesMigrations.defaults` (reset in `tearDown`) so they never touch the dev machine's real prefs.
 - **Not covered** (documented gaps): `migrateShortcutPreferencesToSecureCoding` (needs the real NSKeyedArchiver/ShortcutRecorder codec, stubbed compile-only) and `migrateLoginItem` (mutates real Login Items via deprecated LaunchServices APIs).
@@ -83,3 +83,9 @@ Mirrors `PreferencesMigrationsTests.swift` 1:1.
 
 ### P. Dropdowns: English text → indexes
 - **testDropdownTextValuesBecomeIndexes** — `appsToShow "Active app"` → `"1"`; `theme "❖ Windows 10"` → `"1"`.
+
+### Q. Thumbnails style removed (appearanceStyle reindex + dead keys cleanup)
+- **testThumbnailsStyleRemapsThumbnailsAndTitlesToTitles** — old `"0"` (thumbnails) and `"2"` (titles) → `"1"` (titles), for the global key and `appearanceStyleOverride*`.
+- **testThumbnailsStyleRemapsAppIconsToIndexZero** — old `"1"` (appIcons) → `"0"`.
+- **testThumbnailsStyleRemovesDeadScreenRecordingKeys** — `previewFocusedWindow(`+overrides`)`, `captureWindowsInBackground`, `screenRecordingPermissionSkipped`, `hideThumbnails`, `hideColoredCircles`, `previewFadeInAnimation` are removed.
+- **testThumbnailsStyleMigrationIsOneShot** — the remap is a value permutation, so a `thumbnailsStyleRemovedMigrationDone` marker makes it one-shot: re-running leaves `"1"` as `"1"` instead of flip-flopping.

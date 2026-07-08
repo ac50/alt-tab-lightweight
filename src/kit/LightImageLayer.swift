@@ -22,12 +22,8 @@ class LightImageLayer: CALayer {
     }
 
     func updateContents(_ caLayerContents: CALayerContents, _ size: NSSize) {
-        switch caLayerContents {
-        case .cgImage(let image?):
+        if case .cgImage(let image?) = caLayerContents {
             contents = image
-        case .pixelBuffer(let pixelBuffer?):
-            contents = CVPixelBufferGetIOSurface(pixelBuffer)?.takeUnretainedValue()
-        default: break
         }
         if frame.size != size {
             frame.size = size

@@ -56,14 +56,6 @@ extension NSScreen {
         return NSScreen.screens.first { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) }
     }
 
-    func ratio() -> CGFloat {
-        return frame.width / frame.height
-    }
-
-    func isHorizontal() -> Bool {
-        return ratio() >= 1
-    }
-
     func number() -> CGDirectDisplayID? {
         return deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
     }
@@ -99,7 +91,7 @@ extension NSScreen {
             // CGDisplayScreenSize docs says it can return "zero"
             if size.width > 0 && size.height > 0 &&
                    // CGDisplayScreenSize may return wrong values; we compare physical and logical ratios to reject
-                   abs(ratio() - (size.width / size.height)) < 0.2 {
+                   abs(frame.width / frame.height - (size.width / size.height)) < 0.2 {
                 return size
             }
         }

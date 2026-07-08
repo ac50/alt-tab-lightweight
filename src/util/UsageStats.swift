@@ -29,33 +29,6 @@ struct UsageStats {
         return getTimestamps(key).count { $0 >= threshold }
     }
 
-    static var triggerCount: Int { count("triggers", since: Date.distantPast) }
-
-    static var usedProFeaturesSessionCount: Int {
-        UsageStatsTestable.proFeatureSessionCount(
-            triggers: getTimestamps("triggers"),
-            appIcons: getTimestamps("triggersAppIcons"),
-            titles: getTimestamps("triggersTitles"),
-            extraShortcuts: getTimestamps("triggersExtraShortcuts"),
-            searches: getTimestamps("searches"))
-    }
-
-    static func formatCount(_ n: Int) -> String { UsageStatsTestable.formatCount(n) }
-
-    static func usedProFeatureNames() -> [String] {
-        UsageStatsTestable.proFeatureNames().compactMap {
-            count($0.key, since: Date.distantPast) > 0 ? $0.name : nil
-        }
-    }
-
-    static func usedAppIconsOrTitles() -> Bool {
-        count("triggersAppIcons", since: Date.distantPast) > 0 || count("triggersTitles", since: Date.distantPast) > 0
-    }
-
-    static func usedSearch() -> Bool { count("searches", since: Date.distantPast) > 0 }
-    static func usedAutoSize() -> Bool { count("triggersAutoSize", since: Date.distantPast) > 0 }
-    static func usedExtraShortcuts() -> Bool { count("triggersExtraShortcuts", since: Date.distantPast) > 0 }
-
     static func prune() {
         let cutoff = Int(Date().timeIntervalSince1970 - maxAge)
         writeQueue.async {

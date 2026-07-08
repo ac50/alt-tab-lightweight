@@ -41,10 +41,6 @@ class ThrottlerWithKey {
         self.delayInNanoseconds = UInt64(delayInMs) * 1_000_000
     }
 
-    func removeEntry(withKey key: String) {
-        map.withLock { $0[key] = nil }
-    }
-
     func removeEntries(withSuffix suffix: String) {
         map.withLock { map in
             for key in map.keys where key.hasSuffix(suffix) {
@@ -127,29 +123,5 @@ final class ConcurrentMap<K: Hashable, V>: @unchecked Sendable {
         os_unfair_lock_lock(lock)
         defer { os_unfair_lock_unlock(lock) }
         return block(&map)
-    }
-}
-
-final class ConcurrentArray<T>: @unchecked Sendable {
-    private var array: [T]
-    private let lock: UnsafeMutablePointer<os_unfair_lock> = {
-        let p = UnsafeMutablePointer<os_unfair_lock>.allocate(capacity: 1)
-        p.initialize(to: os_unfair_lock())
-        return p
-    }()
-
-    init(_ initial: [T] = []) { self.array = initial }
-
-    deinit {
-        lock.deinitialize(count: 1)
-        lock.deallocate()
-    }
-
-    @discardableResult
-    @inline(__always)
-    func withLock<R>(_ block: (inout [T]) -> R) -> R {
-        os_unfair_lock_lock(lock)
-        defer { os_unfair_lock_unlock(lock) }
-        return block(&array)
     }
 }

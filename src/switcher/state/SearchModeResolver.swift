@@ -5,11 +5,6 @@ import Foundation
 /// and `ShortcutAction` translate the returned decisions into AppKit side effects (first responder,
 /// caret, refresh, edit menu, `App.cycleSelection`). No globals, no AppKit, no async — so every
 /// interaction is unit-testable. Behavior mirrors the original branch order exactly.
-///
-/// Pro gating note: `ProFeature.*.attemptUse()` has side effects (it can consume the free pass and
-/// surface the upgrade UI), so the caller evaluates it at the real attempt moment and passes the
-/// resulting `Bool` in — the kernel never calls it. `toggle` is gate-free because the original
-/// `toggleSearchModeFromShortcut` delegated gating to `enableSearchEditing` / `disableSearchMode`.
 
 enum SearchMode {
     case off
@@ -40,7 +35,7 @@ enum SearchModeDecision: Equatable {
     case exitToOff
     case lockResults                   // editing -> locked
     case unlockToEditing               // locked -> editing
-    case proGateBlocked(ProGate)       // the Pro attempt was denied
+    case proGateBlocked(ProGate)       // the gate denied the attempt
     case placeCaretOnly                // already editing: just re-place the caret
 }
 
@@ -63,7 +58,7 @@ enum SearchModeResolver {
         mode == .editing ? .disable : .enterEditing
     }
 
-    /// Gate FIRST (mirrors `attemptUse()` on entry), then the already-editing short-circuit,
+    /// Gate FIRST, then the already-editing short-circuit,
     /// else enter — refreshing the UI only when coming from `.off`.
     static func enableEditing(mode: SearchMode, canSearch: Bool) -> SearchModeDecision {
         if !canSearch { return .proGateBlocked(.search) }

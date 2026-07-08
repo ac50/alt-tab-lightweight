@@ -282,13 +282,11 @@ enum ShowTitlesPreference: CaseIterable, MacroPreference {
 }
 
 enum AppearanceStylePreference: CaseIterable, ImageMacroPreference {
-    case thumbnails
     case appIcons
     case titles
 
     var localizedString: LocalizedString {
         switch self {
-            case .thumbnails: return NSLocalizedString("Thumbnails", comment: "")
             case .appIcons: return NSLocalizedString("App Icons", comment: "")
             case .titles: return NSLocalizedString("Titles", comment: "")
         }
@@ -298,7 +296,6 @@ enum AppearanceStylePreference: CaseIterable, ImageMacroPreference {
         let width = CGFloat(150)
         let height = width / 1.6
         switch self {
-            case .thumbnails: return WidthHeightImage(width: width, height: height, name: "thumbnails")
             case .appIcons: return WidthHeightImage(width: width, height: height, name: "app_icons")
             case .titles: return WidthHeightImage(width: width, height: height, name: "titles")
         }
@@ -375,34 +372,6 @@ enum AppearanceThemePreference: CaseIterable, SfSymbolMacroPreference {
             case .light: return .sunMax
             case .dark: return .moonFill
             case .system: return .laptopcomputer
-        }
-    }
-}
-
-enum UpdatePolicyPreference: CaseIterable, MacroPreference {
-    case manual
-    case autoCheck
-    case autoInstall
-
-    var localizedString: LocalizedString {
-        switch self {
-            case .manual: return NSLocalizedString("Don’t check for updates periodically", comment: "")
-            case .autoCheck: return NSLocalizedString("Check for updates periodically", comment: "")
-            case .autoInstall: return NSLocalizedString("Auto-install updates periodically", comment: "")
-        }
-    }
-}
-
-enum CrashPolicyPreference: CaseIterable, MacroPreference {
-    case never
-    case ask
-    case always
-
-    var localizedString: LocalizedString {
-        switch self {
-            case .never: return NSLocalizedString("Never send crash reports", comment: "")
-            case .ask: return NSLocalizedString("Ask whether to send crash reports", comment: "")
-            case .always: return NSLocalizedString("Always send crash reports", comment: "")
         }
     }
 }
